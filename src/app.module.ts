@@ -7,6 +7,10 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { TransactionsModule } from './modules/transactions/transactions.module';
+import { BudgetsModule } from './modules/budgets/budgets.module';
+import { PotsModule } from './modules/pots/pots.module';
+import { FinancesModule } from './modules/finances/finances.module';
 import { getDatabaseConfig } from './config/database.config';
 import { getGraphQLConfig } from './config/graphql.config';
 
@@ -36,6 +40,10 @@ import { getGraphQLConfig } from './config/graphql.config';
     // Feature Modules
     UsersModule,
     AuthModule,
+    TransactionsModule,
+    BudgetsModule,
+    PotsModule,
+    FinancesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

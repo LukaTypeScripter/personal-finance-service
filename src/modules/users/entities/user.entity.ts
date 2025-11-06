@@ -4,8 +4,16 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToMany,
 } from 'typeorm';
 import { ObjectType, Field, ID } from '@nestjs/graphql';
+import { Transaction } from '../../transactions/entities/transaction.entity';
+import { Budget } from '../../budgets/entities/budget.entity';
+import { Pot } from '../../pots/entities/pot.entity';
+import { Currency } from '../../../common/enums/currency.enum';
+
+// Re-export Currency for convenience
+export { Currency };
 
 @ObjectType()
 @Entity('users')
@@ -25,6 +33,23 @@ export class User {
   // Password is not exposed in GraphQL (no @Field decorator)
   @Column()
   password: string;
+
+  @Field()
+  @Column({
+    type: 'enum',
+    enum: Currency,
+    default: Currency.USD,
+  })
+  currency: Currency;
+
+  @OneToMany(() => Transaction, (transaction) => transaction.user)
+  transactions: Transaction[];
+
+  @OneToMany(() => Budget, (budget) => budget.user)
+  budgets: Budget[];
+
+  @OneToMany(() => Pot, (pot) => pot.user)
+  pots: Pot[];
 
   @Field()
   @CreateDateColumn()

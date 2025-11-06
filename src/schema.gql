@@ -7,10 +7,63 @@ type AuthResponse {
   user: User!
 }
 
+type Balance {
+  currency: String!
+  current: Float!
+  expenses: Float!
+  income: Float!
+}
+
+type Budget {
+  category: String!
+  createdAt: DateTime!
+  currency: String!
+  id: ID!
+  maximum: Float!
+  theme: String!
+  updatedAt: DateTime!
+}
+
+input CreateBudgetInput {
+  category: String!
+  currency: String
+  maximum: Float!
+  theme: String!
+}
+
+input CreatePotInput {
+  currency: String
+  name: String!
+  target: Float!
+  theme: String!
+  total: Float = 0
+}
+
+input CreateTransactionInput {
+  amount: Float!
+  avatar: String
+  category: String!
+  currency: String
+  date: String!
+  name: String!
+  recurring: Boolean! = false
+}
+
 """
 A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
 """
 scalar DateTime
+
+input FilterTransactionsInput {
+  category: String
+  currency: String
+  endDate: String
+  maxAmount: Float
+  minAmount: Float
+  name: String
+  recurring: Boolean
+  startDate: String
+}
 
 input LoginInput {
   email: String!
@@ -18,25 +71,118 @@ input LoginInput {
 }
 
 type Mutation {
+  addMoneyToPot(amount: Float!, id: String!): Pot!
+  createBudget(input: CreateBudgetInput!): Budget!
+  createPot(input: CreatePotInput!): Pot!
+  createTransaction(input: CreateTransactionInput!): Transaction!
+  deleteBudget(id: String!): Boolean!
+  deletePot(id: String!): Boolean!
+  deleteTransaction(id: String!): Boolean!
   login(loginInput: LoginInput!): AuthResponse!
   register(registerInput: RegisterInput!): AuthResponse!
+  updateBudget(id: String!, input: UpdateBudgetInput!): Budget!
+  updatePot(id: String!, input: UpdatePotInput!): Pot!
+  updateTransaction(id: String!, input: UpdateTransactionInput!): Transaction!
+  withdrawMoneyFromPot(amount: Float!, id: String!): Pot!
+}
+
+type Pot {
+  createdAt: DateTime!
+  currency: String!
+  id: ID!
+  name: String!
+  target: Float!
+  theme: String!
+  total: Float!
+  updatedAt: DateTime!
 }
 
 type Query {
+  balance(currency: String): Balance!
+  budget(id: String!): Budget!
+  budgetByCategory(category: String!): Budget!
+  budgetSpending(category: String!, currency: String): Float!
+  budgets: [Budget!]!
+  exchangeRate(fromCurrency: String!, toCurrency: String!): Float!
   me: User!
+  pot(id: String!): Pot!
+  pots: [Pot!]!
+  recurringTransactions: [Transaction!]!
   testConnection: String!
+  transaction(id: String!): Transaction!
+  transactions(filter: FilterTransactionsInput, skip: Int, sort: SortTransactionsInput, take: Int): [Transaction!]!
+  transactionsByCategory(category: String!): [Transaction!]!
   user(id: String!): User
   users: [User!]!
 }
 
 input RegisterInput {
+  currency: String
   email: String!
   name: String!
   password: String!
 }
 
+"""Sort order (ascending or descending)"""
+enum SortOrder {
+  ASC
+  DESC
+}
+
+input SortTransactionsInput {
+  sortBy: TransactionSortField! = DATE
+  sortOrder: SortOrder! = DESC
+}
+
+type Transaction {
+  amount: Float!
+  avatar: String
+  category: String!
+  createdAt: DateTime!
+  currency: String!
+  date: DateTime!
+  id: ID!
+  name: String!
+  recurring: Boolean!
+  updatedAt: DateTime!
+}
+
+"""Field to sort transactions by"""
+enum TransactionSortField {
+  AMOUNT
+  CATEGORY
+  CREATED_AT
+  DATE
+  NAME
+}
+
+input UpdateBudgetInput {
+  currency: String
+  maximum: Float
+  theme: String
+}
+
+input UpdatePotInput {
+  currency: String
+  name: String
+  target: Float
+  theme: String
+  total: Float
+}
+
+input UpdateTransactionInput {
+  amount: Float
+  avatar: String
+  category: String
+  currency: String
+  date: String
+  name: String
+  recurring: Boolean
+}
+
 type User {
   createdAt: DateTime!
+  currency: String!
   email: String!
   id: ID!
   name: String!

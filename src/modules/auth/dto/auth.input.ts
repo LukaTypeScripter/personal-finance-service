@@ -1,5 +1,6 @@
 import { InputType, Field } from '@nestjs/graphql';
-import { IsEmail, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsString, MinLength, IsEnum, IsOptional } from 'class-validator';
+import { Currency } from '../../../common/enums/currency.enum';
 
 @InputType()
 export class RegisterInput {
@@ -15,6 +16,11 @@ export class RegisterInput {
   @IsString()
   @MinLength(6, { message: 'Password must be at least 6 characters long' })
   password: string;
+
+  @Field({ nullable: true })
+  @IsEnum(Currency)
+  @IsOptional()
+  currency?: Currency;
 }
 
 @InputType()
