@@ -37,7 +37,6 @@ export class FinancesResolver {
   }
 
   @Query(() => Float, { name: 'exchangeRate' })
-  @UseGuards(GqlAuthGuard)
   async getExchangeRate(
     @Args('fromCurrency') fromCurrency: string,
     @Args('toCurrency') toCurrency: string,
