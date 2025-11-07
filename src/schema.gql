@@ -87,6 +87,20 @@ type Mutation {
   withdrawMoneyFromPot(amount: Float!, id: String!): Pot!
 }
 
+type PaginatedTransactions {
+  pagination: PaginationMeta!
+  transactions: [Transaction!]!
+}
+
+type PaginationMeta {
+  currentPage: Int!
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  pageSize: Int!
+  totalCount: Int!
+  totalPages: Int!
+}
+
 type Pot {
   createdAt: DateTime!
   currency: String!
@@ -111,7 +125,7 @@ type Query {
   recurringTransactions(currency: String): [Transaction!]!
   testConnection: String!
   transaction(currency: String, id: String!): Transaction!
-  transactions(currency: String, filter: FilterTransactionsInput, skip: Int, sort: SortTransactionsInput, take: Int): [Transaction!]!
+  transactions(currency: String, filter: FilterTransactionsInput, skip: Int, sort: SortTransactionsInput, take: Int): PaginatedTransactions!
   transactionsByCategory(category: String!, currency: String): [Transaction!]!
   user(id: String!): User
   users: [User!]!

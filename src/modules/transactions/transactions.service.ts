@@ -45,7 +45,7 @@ export class TransactionsService {
       sort?: SortTransactionsInput;
       currency?: Currency;
     },
-  ): Promise<Transaction[]> {
+  ): Promise<{ transactions: Transaction[]; totalCount: number; skip: number; take: number }> {
     const where: FindOptionsWhere<Transaction> = { userId };
 
     // Apply filters
@@ -98,22 +98,26 @@ export class TransactionsService {
     const order: any = {};
     order[sortBy] = sortOrder;
 
-    const transactions = await this.transactionRepository.find({
+    const skip = options?.skip || 0;
+    const take = options?.take || 50;
+
+    const [transactions, totalCount] = await this.transactionRepository.findAndCount({
       where,
-      skip: options?.skip || 0,
-      take: options?.take || 50,
+      skip,
+      take,
       order,
     });
 
     if (options?.currency) {
-      return Promise.all(
+      const convertedTransactions = await Promise.all(
         transactions.map(transaction =>
           this.convertTransactionCurrency(transaction, options.currency!)
         )
       );
+      return { transactions: convertedTransactions, totalCount, skip, take };
     }
 
-    return transactions;
+    return { transactions, totalCount, skip, take };
   }
 
   async findOne(id: string, userId: string, currency?: Currency): Promise<Transaction> {

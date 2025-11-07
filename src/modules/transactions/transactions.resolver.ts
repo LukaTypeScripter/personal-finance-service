@@ -8,6 +8,7 @@ import {
   FilterTransactionsInput,
   SortTransactionsInput
 } from './dto/transaction.input';
+import { PaginatedTransactions } from './dto/transaction.response';
 import { GqlAuthGuard } from '../../common/guards/gql-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { User } from '../users/entities/user.entity';
@@ -17,7 +18,7 @@ import { Currency } from '../../common/enums/currency.enum';
 export class TransactionsResolver {
   constructor(private readonly transactionsService: TransactionsService) {}
 
-  @Query(() => [Transaction], { name: 'transactions' })
+  @Query(() => PaginatedTransactions, { name: 'transactions' })
   @UseGuards(GqlAuthGuard)
   async findAll(
     @CurrentUser() user: User,
@@ -26,14 +27,30 @@ export class TransactionsResolver {
     @Args('filter', { nullable: true }) filter?: FilterTransactionsInput,
     @Args('sort', { nullable: true }) sort?: SortTransactionsInput,
     @Args('currency', { nullable: true }) currency?: Currency,
-  ): Promise<Transaction[]> {
-    return this.transactionsService.findAll(user.id, {
+  ): Promise<PaginatedTransactions> {
+    const result = await this.transactionsService.findAll(user.id, {
       skip,
       take,
       filter,
       sort,
       currency,
     });
+
+    const pageSize = result.take;
+    const totalPages = Math.ceil(result.totalCount / pageSize);
+    const currentPage = Math.floor(result.skip / pageSize) + 1;
+
+    return {
+      transactions: result.transactions,
+      pagination: {
+        totalCount: result.totalCount,
+        totalPages,
+        currentPage,
+        pageSize,
+        hasNextPage: currentPage < totalPages,
+        hasPreviousPage: currentPage > 1,
+      },
+    };
   }
 
   @Query(() => Transaction, { name: 'transaction' })
