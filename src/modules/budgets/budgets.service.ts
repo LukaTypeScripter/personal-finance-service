@@ -50,8 +50,10 @@ export class BudgetsService {
     });
 
     if (currency) {
-      return budgets.map((budget) =>
-        this.convertBudgetCurrency(budget, currency),
+      return Promise.all(
+        budgets.map((budget) =>
+          this.convertBudgetCurrency(budget, currency),
+        ),
       );
     }
 
@@ -72,7 +74,7 @@ export class BudgetsService {
     }
 
     if (currency) {
-      return this.convertBudgetCurrency(budget, currency);
+      return await this.convertBudgetCurrency(budget, currency);
     }
 
     return budget;
@@ -94,7 +96,7 @@ export class BudgetsService {
     }
 
     if (currency) {
-      return this.convertBudgetCurrency(budget, currency);
+      return await this.convertBudgetCurrency(budget, currency);
     }
 
     return budget;
@@ -119,13 +121,13 @@ export class BudgetsService {
   /**
    * Convert budget amounts to target currency
    */
-  private convertBudgetCurrency(
+  private async convertBudgetCurrency(
     budget: Budget,
     targetCurrency: Currency,
-  ): Budget {
+  ): Promise<Budget> {
     const convertedBudget = { ...budget };
 
-    convertedBudget.maximum = this.currencyConverter.convertCurrency(
+    convertedBudget.maximum = await this.currencyConverter.convertCurrency(
       Number(budget.maximum),
       budget.currency,
       targetCurrency,

@@ -23,7 +23,7 @@ export class FinancesService {
     let expenses = 0;
 
     for (const transaction of transactions) {
-      const convertedAmount = this.currencyConverter.convertCurrency(
+      const convertedAmount = await this.currencyConverter.convertCurrency(
         Number(transaction.amount),
         transaction.currency,
         currency,
@@ -57,7 +57,7 @@ export class FinancesService {
 
     for (const transaction of transactions) {
       if (transaction.amount < 0) {
-        const convertedAmount = this.currencyConverter.convertCurrency(
+        const convertedAmount = await this.currencyConverter.convertCurrency(
           Math.abs(Number(transaction.amount)),
           transaction.currency,
           currency,
@@ -90,7 +90,7 @@ export class FinancesService {
 
     for (const transaction of transactions) {
       if (transaction.amount < 0) {
-        const convertedAmount = this.currencyConverter.convertCurrency(
+        const convertedAmount = await this.currencyConverter.convertCurrency(
           Math.abs(Number(transaction.amount)),
           transaction.currency,
           currency,

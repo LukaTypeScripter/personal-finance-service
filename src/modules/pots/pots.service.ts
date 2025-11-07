@@ -36,7 +36,9 @@ export class PotsService {
     });
 
     if (currency) {
-      return pots.map(pot => this.convertPotCurrency(pot, currency));
+      return Promise.all(
+        pots.map(pot => this.convertPotCurrency(pot, currency))
+      );
     }
 
     return pots;
@@ -52,7 +54,7 @@ export class PotsService {
     }
 
     if (currency) {
-      return this.convertPotCurrency(pot, currency);
+      return await this.convertPotCurrency(pot, currency);
     }
 
     return pot;
@@ -115,16 +117,16 @@ export class PotsService {
   /**
    * Convert pot amounts to target currency
    */
-  private convertPotCurrency(pot: Pot, targetCurrency: Currency): Pot {
+  private async convertPotCurrency(pot: Pot, targetCurrency: Currency): Promise<Pot> {
     const convertedPot = { ...pot };
 
-    convertedPot.target = this.currencyConverter.convertCurrency(
+    convertedPot.target = await this.currencyConverter.convertCurrency(
       Number(pot.target),
       pot.currency,
       targetCurrency,
     );
 
-    convertedPot.total = this.currencyConverter.convertCurrency(
+    convertedPot.total = await this.currencyConverter.convertCurrency(
       Number(pot.total),
       pot.currency,
       targetCurrency,

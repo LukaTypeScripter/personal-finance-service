@@ -1,13 +1,23 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { Currency } from '../enums/currency.enum';
+import { ExchangeRatesService } from '../../modules/exchange-rates/exchange-rates.service';
 
 @Injectable()
 export class CurrencyConverterService {
-  // Exchange rates (hardcoded as per requirements)
-  private readonly rates = {
-    USD_TO_GEO: 2.7, // 1 USD = 2.7 GEO
-    GEO_TO_USD: 0.37, // 1 GEO = 0.37 USD
+  private readonly logger = new Logger(CurrencyConverterService.name);
+
+  private readonly fallbackRates = {
+    USD_TO_GEO: 2.7,
+    GEO_TO_USD: 0.37,
+    EUR_TO_GEO: 3.12,
+    GEO_TO_EUR: 0.32,
+    USD_TO_EUR: 1.15,
+    EUR_TO_USD: 0.87,
   };
+
+  constructor(
+    @Optional() private readonly exchangeRatesService?: ExchangeRatesService,
+  ) {}
 
   /**
    * Convert amount from one currency to another
@@ -16,23 +26,18 @@ export class CurrencyConverterService {
    * @param toCurrency - Target currency
    * @returns Converted amount
    */
-  convertCurrency(
+  async convertCurrency(
     amount: number,
     fromCurrency: Currency,
     toCurrency: Currency,
-  ): number {
+  ): Promise<number> {
     if (fromCurrency === toCurrency) {
       return amount;
     }
 
-    if (fromCurrency === Currency.USD && toCurrency === Currency.GEO) {
-      return amount * this.rates.USD_TO_GEO;
-    } else if (fromCurrency === Currency.GEO && toCurrency === Currency.USD) {
-      return amount * this.rates.GEO_TO_USD;
-    }
+    const rate = await this.getExchangeRate(fromCurrency, toCurrency);
 
-    // Return original amount if conversion not supported
-    return amount;
+    return amount * rate;
   }
 
   /**
@@ -41,17 +46,93 @@ export class CurrencyConverterService {
    * @param toCurrency - Target currency
    * @returns Exchange rate
    */
-  getExchangeRate(fromCurrency: Currency, toCurrency: Currency): number {
+  async getExchangeRate(
+    fromCurrency: Currency,
+    toCurrency: Currency,
+  ): Promise<number> {
     if (fromCurrency === toCurrency) {
       return 1;
     }
 
-    if (fromCurrency === Currency.USD && toCurrency === Currency.GEO) {
-      return this.rates.USD_TO_GEO;
-    } else if (fromCurrency === Currency.GEO && toCurrency === Currency.USD) {
-      return this.rates.GEO_TO_USD;
+    if (this.exchangeRatesService) {
+      try {
+        const rate = await this.exchangeRatesService.getRate(
+          fromCurrency,
+          toCurrency,
+        );
+
+        if (rate !== null) {
+          return rate;
+        }
+
+        this.logger.warn(
+          `API returned null rate for ${fromCurrency} to ${toCurrency}, using fallback`,
+        );
+      } catch (error) {
+        this.logger.error(
+          `Error fetching rate from API: ${error.message}, using fallback`,
+        );
+      }
     }
 
+    // Fallback to hardcoded rates
+    return this.getFallbackRate(fromCurrency, toCurrency);
+  }
+
+  /**
+   * Get fallback exchange rate from hardcoded values
+   * @param fromCurrency - Source currency
+   * @param toCurrency - Target currency
+   * @returns Exchange rate
+   */
+  private getFallbackRate(fromCurrency: Currency, toCurrency: Currency): number {
+    const key = `${fromCurrency}_TO_${toCurrency}`;
+    const rate = this.fallbackRates[key];
+
+    if (rate) {
+      return rate;
+    }
+
+    // Try inverse rate
+    const inverseKey = `${toCurrency}_TO_${fromCurrency}`;
+    const inverseRate = this.fallbackRates[inverseKey];
+
+    if (inverseRate) {
+      return 1 / inverseRate;
+    }
+
+    // Try cross-conversion via USD or GEO
+    const crossRate = this.findCrossFallbackRate(fromCurrency, toCurrency);
+    if (crossRate !== null) {
+      return crossRate;
+    }
+
+    this.logger.warn(
+      `No fallback rate found for ${fromCurrency} to ${toCurrency}, returning 1`,
+    );
     return 1;
+  }
+
+  /**
+   * Attempts to find a cross-conversion rate using an intermediate currency
+   * @param from - Source currency
+   * @param to - Target currency
+   * @returns Cross rate or null
+   */
+  private findCrossFallbackRate(from: Currency, to: Currency): number | null {
+    const intermediates = [Currency.USD, Currency.GEO, Currency.EUR];
+
+    for (const intermediate of intermediates) {
+      if (intermediate === from || intermediate === to) continue;
+
+      const fromToIntermediate = this.fallbackRates[`${from}_TO_${intermediate}`];
+      const intermediateToTo = this.fallbackRates[`${intermediate}_TO_${to}`];
+
+      if (fromToIntermediate && intermediateToTo) {
+        return fromToIntermediate * intermediateToTo;
+      }
+    }
+
+    return null;
   }
 }

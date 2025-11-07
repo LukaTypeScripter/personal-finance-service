@@ -106,8 +106,10 @@ export class TransactionsService {
     });
 
     if (options?.currency) {
-      return transactions.map(transaction =>
-        this.convertTransactionCurrency(transaction, options.currency!)
+      return Promise.all(
+        transactions.map(transaction =>
+          this.convertTransactionCurrency(transaction, options.currency!)
+        )
       );
     }
 
@@ -124,7 +126,7 @@ export class TransactionsService {
     }
 
     if (currency) {
-      return this.convertTransactionCurrency(transaction, currency);
+      return await this.convertTransactionCurrency(transaction, currency);
     }
 
     return transaction;
@@ -160,8 +162,10 @@ export class TransactionsService {
     });
 
     if (currency) {
-      return transactions.map(transaction =>
-        this.convertTransactionCurrency(transaction, currency)
+      return Promise.all(
+        transactions.map(transaction =>
+          this.convertTransactionCurrency(transaction, currency)
+        )
       );
     }
 
@@ -179,8 +183,10 @@ export class TransactionsService {
     });
 
     if (currency) {
-      return transactions.map(transaction =>
-        this.convertTransactionCurrency(transaction, currency)
+      return Promise.all(
+        transactions.map(transaction =>
+          this.convertTransactionCurrency(transaction, currency)
+        )
       );
     }
 
@@ -190,10 +196,10 @@ export class TransactionsService {
   /**
    * Convert transaction amount to target currency
    */
-  private convertTransactionCurrency(transaction: Transaction, targetCurrency: Currency): Transaction {
+  private async convertTransactionCurrency(transaction: Transaction, targetCurrency: Currency): Promise<Transaction> {
     const convertedTransaction = { ...transaction };
 
-    convertedTransaction.amount = this.currencyConverter.convertCurrency(
+    convertedTransaction.amount = await this.currencyConverter.convertCurrency(
       Number(transaction.amount),
       transaction.currency,
       targetCurrency,
