@@ -54,4 +54,8 @@ export class Budget {
   @Field()
   @UpdateDateColumn()
   updatedAt: Date;
+
+  // Computed field - not stored in database
+  @Field(() => Float)
+  spent?: number;
 }

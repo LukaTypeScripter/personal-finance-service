@@ -4,12 +4,14 @@ import { Repository } from 'typeorm';
 import { Pot } from './entities/pot.entity';
 import { CreatePotInput, UpdatePotInput } from './dto/pot.input';
 import { Currency } from '../../common/enums/currency.enum';
+import { CurrencyConverterService } from '../../common/services/currency-converter.service';
 
 @Injectable()
 export class PotsService {
   constructor(
     @InjectRepository(Pot)
     private potRepository: Repository<Pot>,
+    private currencyConverter: CurrencyConverterService,
   ) {}
 
   async create(
@@ -27,20 +29,30 @@ export class PotsService {
     return await this.potRepository.save(pot);
   }
 
-  async findAll(userId: string): Promise<Pot[]> {
-    return await this.potRepository.find({
+  async findAll(userId: string, currency?: Currency): Promise<Pot[]> {
+    const pots = await this.potRepository.find({
       where: { userId },
       order: { name: 'ASC' },
     });
+
+    if (currency) {
+      return pots.map(pot => this.convertPotCurrency(pot, currency));
+    }
+
+    return pots;
   }
 
-  async findOne(id: string, userId: string): Promise<Pot> {
+  async findOne(id: string, userId: string, currency?: Currency): Promise<Pot> {
     const pot = await this.potRepository.findOne({
       where: { id, userId },
     });
 
     if (!pot) {
       throw new NotFoundException(`Pot with ID ${id} not found`);
+    }
+
+    if (currency) {
+      return this.convertPotCurrency(pot, currency);
     }
 
     return pot;
@@ -98,5 +110,29 @@ export class PotsService {
     const pot = await this.findOne(id, userId);
     await this.potRepository.remove(pot);
     return true;
+  }
+
+  /**
+   * Convert pot amounts to target currency
+   */
+  private convertPotCurrency(pot: Pot, targetCurrency: Currency): Pot {
+    const convertedPot = { ...pot };
+
+    convertedPot.target = this.currencyConverter.convertCurrency(
+      Number(pot.target),
+      pot.currency,
+      targetCurrency,
+    );
+
+    convertedPot.total = this.currencyConverter.convertCurrency(
+      Number(pot.total),
+      pot.currency,
+      targetCurrency,
+    );
+
+    // Update the currency field to reflect the conversion
+    convertedPot.currency = targetCurrency;
+
+    return convertedPot;
   }
 }

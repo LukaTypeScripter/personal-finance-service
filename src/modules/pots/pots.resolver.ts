@@ -6,6 +6,7 @@ import { CreatePotInput, UpdatePotInput } from './dto/pot.input';
 import { GqlAuthGuard } from '../../common/guards/gql-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { User } from '../users/entities/user.entity';
+import { Currency } from '../../common/enums/currency.enum';
 
 @Resolver(() => Pot)
 export class PotsResolver {
@@ -13,8 +14,11 @@ export class PotsResolver {
 
   @Query(() => [Pot], { name: 'pots' })
   @UseGuards(GqlAuthGuard)
-  async findAll(@CurrentUser() user: User): Promise<Pot[]> {
-    return this.potsService.findAll(user.id);
+  async findAll(
+    @CurrentUser() user: User,
+    @Args('currency', { nullable: true }) currency?: Currency,
+  ): Promise<Pot[]> {
+    return this.potsService.findAll(user.id, currency);
   }
 
   @Query(() => Pot, { name: 'pot' })
@@ -22,8 +26,9 @@ export class PotsResolver {
   async findOne(
     @CurrentUser() user: User,
     @Args('id') id: string,
+    @Args('currency', { nullable: true }) currency?: Currency,
   ): Promise<Pot> {
-    return this.potsService.findOne(id, user.id);
+    return this.potsService.findOne(id, user.id, currency);
   }
 
   @Mutation(() => Pot)

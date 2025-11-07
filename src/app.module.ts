@@ -11,6 +11,7 @@ import { TransactionsModule } from './modules/transactions/transactions.module';
 import { BudgetsModule } from './modules/budgets/budgets.module';
 import { PotsModule } from './modules/pots/pots.module';
 import { FinancesModule } from './modules/finances/finances.module';
+import { CommonModule } from './common/common.module';
 import { getDatabaseConfig } from './config/database.config';
 import { getGraphQLConfig } from './config/graphql.config';
 
@@ -38,6 +39,7 @@ import { getGraphQLConfig } from './config/graphql.config';
     }),
 
     // Feature Modules
+    CommonModule,
     UsersModule,
     AuthModule,
     TransactionsModule,

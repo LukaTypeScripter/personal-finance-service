@@ -20,6 +20,7 @@ type Budget {
   currency: String!
   id: ID!
   maximum: Float!
+  spent: Float!
   theme: String!
   updatedAt: DateTime!
 }
@@ -99,19 +100,19 @@ type Pot {
 
 type Query {
   balance(currency: String): Balance!
-  budget(id: String!): Budget!
-  budgetByCategory(category: String!): Budget!
+  budget(currency: String, id: String!): Budget!
+  budgetByCategory(category: String!, currency: String): Budget!
   budgetSpending(category: String!, currency: String): Float!
-  budgets: [Budget!]!
+  budgets(currency: String): [Budget!]!
   exchangeRate(fromCurrency: String!, toCurrency: String!): Float!
   me: User!
-  pot(id: String!): Pot!
-  pots: [Pot!]!
-  recurringTransactions: [Transaction!]!
+  pot(currency: String, id: String!): Pot!
+  pots(currency: String): [Pot!]!
+  recurringTransactions(currency: String): [Transaction!]!
   testConnection: String!
-  transaction(id: String!): Transaction!
-  transactions(filter: FilterTransactionsInput, skip: Int, sort: SortTransactionsInput, take: Int): [Transaction!]!
-  transactionsByCategory(category: String!): [Transaction!]!
+  transaction(currency: String, id: String!): Transaction!
+  transactions(currency: String, filter: FilterTransactionsInput, skip: Int, sort: SortTransactionsInput, take: Int): [Transaction!]!
+  transactionsByCategory(category: String!, currency: String): [Transaction!]!
   user(id: String!): User
   users: [User!]!
 }

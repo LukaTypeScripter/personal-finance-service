@@ -11,12 +11,14 @@ import {
   SortOrder,
 } from './dto/transaction.input';
 import { Currency } from '../../common/enums/currency.enum';
+import { CurrencyConverterService } from '../../common/services/currency-converter.service';
 
 @Injectable()
 export class TransactionsService {
   constructor(
     @InjectRepository(Transaction)
     private transactionRepository: Repository<Transaction>,
+    private currencyConverter: CurrencyConverterService,
   ) {}
 
   async create(
@@ -41,6 +43,7 @@ export class TransactionsService {
       take?: number;
       filter?: FilterTransactionsInput;
       sort?: SortTransactionsInput;
+      currency?: Currency;
     },
   ): Promise<Transaction[]> {
     const where: FindOptionsWhere<Transaction> = { userId };
@@ -95,21 +98,33 @@ export class TransactionsService {
     const order: any = {};
     order[sortBy] = sortOrder;
 
-    return await this.transactionRepository.find({
+    const transactions = await this.transactionRepository.find({
       where,
       skip: options?.skip || 0,
       take: options?.take || 50,
       order,
     });
+
+    if (options?.currency) {
+      return transactions.map(transaction =>
+        this.convertTransactionCurrency(transaction, options.currency!)
+      );
+    }
+
+    return transactions;
   }
 
-  async findOne(id: string, userId: string): Promise<Transaction> {
+  async findOne(id: string, userId: string, currency?: Currency): Promise<Transaction> {
     const transaction = await this.transactionRepository.findOne({
       where: { id, userId },
     });
 
     if (!transaction) {
       throw new NotFoundException(`Transaction with ID ${id} not found`);
+    }
+
+    if (currency) {
+      return this.convertTransactionCurrency(transaction, currency);
     }
 
     return transaction;
@@ -138,20 +153,55 @@ export class TransactionsService {
     return true;
   }
 
-  async getRecurringTransactions(userId: string): Promise<Transaction[]> {
-    return await this.transactionRepository.find({
+  async getRecurringTransactions(userId: string, currency?: Currency): Promise<Transaction[]> {
+    const transactions = await this.transactionRepository.find({
       where: { userId, recurring: true },
       order: { date: 'DESC' },
     });
+
+    if (currency) {
+      return transactions.map(transaction =>
+        this.convertTransactionCurrency(transaction, currency)
+      );
+    }
+
+    return transactions;
   }
 
   async getTransactionsByCategory(
     userId: string,
     category: string,
+    currency?: Currency,
   ): Promise<Transaction[]> {
-    return await this.transactionRepository.find({
+    const transactions = await this.transactionRepository.find({
       where: { userId, category },
       order: { date: 'DESC' },
     });
+
+    if (currency) {
+      return transactions.map(transaction =>
+        this.convertTransactionCurrency(transaction, currency)
+      );
+    }
+
+    return transactions;
+  }
+
+  /**
+   * Convert transaction amount to target currency
+   */
+  private convertTransactionCurrency(transaction: Transaction, targetCurrency: Currency): Transaction {
+    const convertedTransaction = { ...transaction };
+
+    convertedTransaction.amount = this.currencyConverter.convertCurrency(
+      Number(transaction.amount),
+      transaction.currency,
+      targetCurrency,
+    );
+
+    // Update the currency field to reflect the conversion
+    convertedTransaction.currency = targetCurrency;
+
+    return convertedTransaction;
   }
 }

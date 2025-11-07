@@ -11,6 +11,7 @@ import {
 import { GqlAuthGuard } from '../../common/guards/gql-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { User } from '../users/entities/user.entity';
+import { Currency } from '../../common/enums/currency.enum';
 
 @Resolver(() => Transaction)
 export class TransactionsResolver {
@@ -24,12 +25,14 @@ export class TransactionsResolver {
     @Args('take', { type: () => Int, nullable: true }) take?: number,
     @Args('filter', { nullable: true }) filter?: FilterTransactionsInput,
     @Args('sort', { nullable: true }) sort?: SortTransactionsInput,
+    @Args('currency', { nullable: true }) currency?: Currency,
   ): Promise<Transaction[]> {
     return this.transactionsService.findAll(user.id, {
       skip,
       take,
       filter,
       sort,
+      currency,
     });
   }
 
@@ -38,14 +41,18 @@ export class TransactionsResolver {
   async findOne(
     @CurrentUser() user: User,
     @Args('id') id: string,
+    @Args('currency', { nullable: true }) currency?: Currency,
   ): Promise<Transaction> {
-    return this.transactionsService.findOne(id, user.id);
+    return this.transactionsService.findOne(id, user.id, currency);
   }
 
   @Query(() => [Transaction], { name: 'recurringTransactions' })
   @UseGuards(GqlAuthGuard)
-  async findRecurring(@CurrentUser() user: User): Promise<Transaction[]> {
-    return this.transactionsService.getRecurringTransactions(user.id);
+  async findRecurring(
+    @CurrentUser() user: User,
+    @Args('currency', { nullable: true }) currency?: Currency,
+  ): Promise<Transaction[]> {
+    return this.transactionsService.getRecurringTransactions(user.id, currency);
   }
 
   @Query(() => [Transaction], { name: 'transactionsByCategory' })
@@ -53,8 +60,9 @@ export class TransactionsResolver {
   async findByCategory(
     @CurrentUser() user: User,
     @Args('category') category: string,
+    @Args('currency', { nullable: true }) currency?: Currency,
   ): Promise<Transaction[]> {
-    return this.transactionsService.getTransactionsByCategory(user.id, category);
+    return this.transactionsService.getTransactionsByCategory(user.id, category, currency);
   }
 
   @Mutation(() => Transaction)
