@@ -30,7 +30,6 @@ export class User {
   @Column({ unique: true })
   email: string;
 
-  // Password is not exposed in GraphQL (no @Field decorator)
   @Column()
   password: string;
 

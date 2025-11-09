@@ -1,4 +1,11 @@
-import { Resolver, Query, Mutation, Args, ResolveField, Parent } from '@nestjs/graphql';
+import {
+  Resolver,
+  Query,
+  Mutation,
+  Args,
+  ResolveField,
+  Parent,
+} from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { BudgetsService } from './budgets.service';
 import { Budget } from './entities/budget.entity';
@@ -75,7 +82,6 @@ export class BudgetsResolver {
 
   @ResolveField('spent', () => Number)
   async getSpent(@Parent() budget: Budget): Promise<number> {
-    // Calculate spending for this budget category in the budget's currency
     return this.financesService.getBudgetSpending(
       budget.userId,
       budget.category,
