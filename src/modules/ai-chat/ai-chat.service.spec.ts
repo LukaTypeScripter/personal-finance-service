@@ -87,4 +87,40 @@ describe('AiChatService', () => {
     await expect(service.deleteConversation(user, 'c1'))
       .rejects.toBeInstanceOf(ForbiddenException);
   });
+
+  it('sends the most recent history (newest N), in chronological order, to Grok', async () => {
+    // Simulate a repo that honors order+take: newest-first when DESC.
+    msgRepo.find.mockImplementation(async (opts: any) => {
+      const all = Array.from({ length: 25 }, (_, i) => ({
+        id: `h${i}`,
+        role: ChatRole.USER,
+        content: `msg ${i}`, // msg 24 is newest
+        createdAt: new Date(2020, 0, 1, 0, i),
+      }));
+      const dir = opts?.order?.createdAt;
+      const sorted = dir === 'DESC' ? [...all].reverse() : all;
+      return opts?.take ? sorted.slice(0, opts.take) : sorted;
+    });
+
+    await service.sendMessage(user, { conversationId: undefined, message: 'latest' });
+
+    const grokArgs = grok.chat.mock.calls[0][0]; // GrokChatMessage[]
+    const history = grokArgs.slice(1); // drop the system prompt
+    expect(history.length).toBe(20); // MAX_HISTORY
+    // must be chronological (oldest -> newest)
+    expect(history[history.length - 1].content).toBe('msg 24');
+    // must NOT contain the oldest messages that were dropped
+    expect(history.some((m: any) => m.content === 'msg 0')).toBe(false);
+  });
+
+  it('getConversation returns an owned conversation with messages ordered ASC', async () => {
+    convRepo.findOne.mockResolvedValue({ id: 'c1', userId: 'u1' });
+    msgRepo.find.mockResolvedValue([{ id: 'm1', role: ChatRole.USER, content: 'hi' }]);
+    const conv = await service.getConversation(user, 'c1');
+    expect(conv.id).toBe('c1');
+    expect(conv.messages).toHaveLength(1);
+    expect(msgRepo.find).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { conversationId: 'c1' }, order: { createdAt: 'ASC' } }),
+    );
+  });
 });

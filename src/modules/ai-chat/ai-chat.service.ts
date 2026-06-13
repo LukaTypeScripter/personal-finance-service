@@ -51,11 +51,12 @@ export class AiChatService {
       }),
     );
 
-    const history = await this.messageRepo.find({
+    const recentHistory = await this.messageRepo.find({
       where: { conversationId: conversation.id },
-      order: { createdAt: 'ASC' },
+      order: { createdAt: 'DESC' },
       take: this.MAX_HISTORY,
     });
+    const history = recentHistory.reverse();
 
     const systemPrompt = await this.financeContext.buildSystemPrompt(
       user.id,
