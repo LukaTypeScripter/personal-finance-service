@@ -77,22 +77,9 @@ export class ExchangeRatesService {
     const from = fromCurrency === 'GEO' ? 'GEL' : fromCurrency;
     const to = toCurrency === 'GEO' ? 'GEL' : toCurrency;
 
-    const directRate = rates.find(
-      (rate) =>
-        rate.baseCurrencyCode === from && rate.secondaryCurrencyCode === to,
-    );
-
-    if (directRate) {
-      return directRate.buyRate;
-    }
-
-    const inverseRate = rates.find(
-      (rate) =>
-        rate.baseCurrencyCode === to && rate.secondaryCurrencyCode === from,
-    );
-
-    if (inverseRate && inverseRate.buyRate !== 0) {
-      return 1 / inverseRate.buyRate;
+    const directRate = this.getDirectRate(rates, from, to);
+    if (directRate !== null) {
+      return directRate;
     }
 
     const crossRate = this.findCrossRate(rates, from, to);
@@ -103,6 +90,38 @@ export class ExchangeRatesService {
     this.logger.warn(
       `No exchange rate found for ${fromCurrency} to ${toCurrency}`,
     );
+    return null;
+  }
+
+  /**
+   * Returns the multiplier `m` such that `amount_in_to = amount_in_from * m`,
+   * using a single rate entry if one exists for the pair (in either orientation).
+   *
+   * kursi.ge entries are `{ base, secondary, buyRate }` with the convention
+   * `1 secondary = buyRate * base` (e.g. base=GEL, secondary=USD, buyRate=2.66
+   * means 1 USD = 2.66 GEL). Therefore:
+   *  - entry with secondary === from, base === to  ->  1 from = buyRate to   => m = buyRate
+   *  - entry with base === from, secondary === to  ->  1 to = buyRate from   => m = 1 / buyRate
+   */
+  private getDirectRate(
+    rates: ExchangeRateDto[],
+    from: string,
+    to: string,
+  ): number | null {
+    const fromIsSecondary = rates.find(
+      (r) => r.secondaryCurrencyCode === from && r.baseCurrencyCode === to,
+    );
+    if (fromIsSecondary && fromIsSecondary.buyRate) {
+      return fromIsSecondary.buyRate;
+    }
+
+    const fromIsBase = rates.find(
+      (r) => r.baseCurrencyCode === from && r.secondaryCurrencyCode === to,
+    );
+    if (fromIsBase && fromIsBase.buyRate) {
+      return 1 / fromIsBase.buyRate;
+    }
+
     return null;
   }
 
@@ -123,46 +142,11 @@ export class ExchangeRatesService {
     for (const intermediate of intermediates) {
       if (intermediate === from || intermediate === to) continue;
 
-      let fromToIntermediate = rates.find(
-        (r) =>
-          r.baseCurrencyCode === from && r.secondaryCurrencyCode === intermediate,
-      );
+      const fromToIntermediate = this.getDirectRate(rates, from, intermediate);
+      const intermediateToTo = this.getDirectRate(rates, intermediate, to);
 
-      if (!fromToIntermediate) {
-        const inverse = rates.find(
-          (r) =>
-            r.baseCurrencyCode === intermediate &&
-            r.secondaryCurrencyCode === from,
-        );
-        if (inverse && inverse.buyRate !== 0) {
-          fromToIntermediate = {
-            ...inverse,
-            buyRate: 1 / inverse.buyRate,
-          };
-        }
-      }
-
-      let intermediateToTo = rates.find(
-        (r) =>
-          r.baseCurrencyCode === intermediate && r.secondaryCurrencyCode === to,
-      );
-
-      if (!intermediateToTo) {
-        const inverse = rates.find(
-          (r) =>
-            r.baseCurrencyCode === to &&
-            r.secondaryCurrencyCode === intermediate,
-        );
-        if (inverse && inverse.buyRate !== 0) {
-          intermediateToTo = {
-            ...inverse,
-            buyRate: 1 / inverse.buyRate,
-          };
-        }
-      }
-
-      if (fromToIntermediate && intermediateToTo) {
-        const crossRate = fromToIntermediate.buyRate * intermediateToTo.buyRate;
+      if (fromToIntermediate !== null && intermediateToTo !== null) {
+        const crossRate = fromToIntermediate * intermediateToTo;
         this.logger.debug(
           `Found cross rate ${from} -> ${to} via ${intermediate}: ${crossRate}`,
         );
