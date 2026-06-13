@@ -25,6 +25,28 @@ type Budget {
   updatedAt: DateTime!
 }
 
+type ChatConversation {
+  createdAt: DateTime!
+  id: ID!
+  messages: [ChatMessage!]!
+  title: String!
+  updatedAt: DateTime!
+  userId: String!
+}
+
+type ChatMessage {
+  content: String!
+  conversationId: String!
+  createdAt: DateTime!
+  id: ID!
+  role: ChatRole!
+}
+
+enum ChatRole {
+  ASSISTANT
+  USER
+}
+
 input CreateBudgetInput {
   category: String!
   currency: String
@@ -77,10 +99,12 @@ type Mutation {
   createPot(input: CreatePotInput!): Pot!
   createTransaction(input: CreateTransactionInput!): Transaction!
   deleteBudget(id: String!): Boolean!
+  deleteChatConversation(id: ID!): Boolean!
   deletePot(id: String!): Boolean!
   deleteTransaction(id: String!): Boolean!
   login(loginInput: LoginInput!): AuthResponse!
   register(registerInput: RegisterInput!): AuthResponse!
+  sendChatMessage(input: SendChatMessageInput!): ChatMessage!
   updateBudget(id: String!, input: UpdateBudgetInput!): Budget!
   updatePot(id: String!, input: UpdatePotInput!): Pot!
   updateTransaction(id: String!, input: UpdateTransactionInput!): Transaction!
@@ -118,6 +142,8 @@ type Query {
   budgetByCategory(category: String!, currency: String): Budget!
   budgetSpending(category: String!, currency: String): Float!
   budgets(currency: String): [Budget!]!
+  chatConversation(id: ID!): ChatConversation!
+  chatConversations: [ChatConversation!]!
   exchangeRate(fromCurrency: String!, toCurrency: String!): Float!
   me: User!
   pot(currency: String, id: String!): Pot!
@@ -136,6 +162,11 @@ input RegisterInput {
   email: String!
   name: String!
   password: String!
+}
+
+input SendChatMessageInput {
+  conversationId: ID
+  message: String!
 }
 
 """Sort order (ascending or descending)"""
