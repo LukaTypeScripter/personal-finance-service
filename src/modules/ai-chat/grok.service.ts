@@ -57,8 +57,10 @@ export class GrokService {
     } catch (error) {
       if (error instanceof InternalServerErrorException) throw error;
       const status = error?.response?.status;
+      const body = error?.response?.data;
       this.logger.error(
-        `Grok request failed (status ${status ?? 'n/a'}): ${error?.message}`,
+        `Grok request failed (status ${status ?? 'n/a'}): ${error?.message}` +
+          (body ? ` | body: ${JSON.stringify(body)}` : ''),
       );
       throw new ServiceUnavailableException(
         'The AI assistant is temporarily unavailable. Please try again.',
